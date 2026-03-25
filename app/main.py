@@ -67,7 +67,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Event Analytics API",
-    description="A simple Event Analytics API — Phase 0 foundation + Phase 1 CRUD + Phase 2 Events + Phase 3 Analytics.",
+    description="A simple Event Analytics API",
     version="1.0.0",
     lifespan=lifespan,
 )
