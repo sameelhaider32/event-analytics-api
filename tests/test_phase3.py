@@ -18,23 +18,6 @@ from app.main import app
 
 
 
-def _reset_db():
-    """
-    Clears tables so tests don't depend on previous runs.
-    Adjust table names if your schema differs.
-    """
-    from app.db import get_db_connection
-
-    conn = get_db_connection()
-    try:
-        conn.execute("DELETE FROM events")
-        conn.execute("DELETE FROM assets")
-        conn.execute("DELETE FROM operators")
-        conn.commit()
-    finally:
-        conn.close()
-
-
 def _create_asset(client, asset_id="ast_1", name="Payment Service", asset_type="service"):
     r = client.post("/assets", json={"id": asset_id, "name": name, "type": asset_type})
     assert r.status_code in (201, 409)  # allow reruns (409 if already exists)
@@ -60,7 +43,6 @@ def _summary(client, **params):
 
 
 def test_summary_empty_returns_zeros(client):
-    _reset_db()
     data = _summary(client)
 
     assert data["total_events"] == 0
@@ -74,7 +56,6 @@ def test_summary_empty_returns_zeros(client):
 
 
 def test_counts_by_type_and_total(client):
-    _reset_db()
     _create_asset(client, "ast_1")
     _create_operator(client, "op_1")
 
@@ -110,7 +91,6 @@ def test_counts_by_type_and_total(client):
 
 
 def test_counts_by_severity_has_correct_values(client):
-    _reset_db()
     _create_asset(client, "ast_1")
     _create_operator(client, "op_1")
 
@@ -133,7 +113,6 @@ def test_counts_by_severity_has_correct_values(client):
 
 
 def test_filter_by_asset_id(client):
-    _reset_db()
     _create_asset(client, "ast_1")
     _create_asset(client, "ast_2")
 
@@ -159,7 +138,6 @@ def test_filter_by_asset_id(client):
 
 
 def test_filter_by_min_severity(client):
-    _reset_db()
     _create_asset(client, "ast_1")
 
     _post_event(client, {
@@ -185,7 +163,6 @@ def test_filter_by_min_severity(client):
 
 
 def test_top_assets_and_top_operators(client):
-    _reset_db()
     _create_asset(client, "ast_1")
     _create_asset(client, "ast_2")
     _create_operator(client, "op_1")

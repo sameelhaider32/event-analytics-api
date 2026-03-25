@@ -1,25 +1,8 @@
 # Event Analytics API
 
+[![Tests](https://github.com/sameelhaider32/event-analytics-api/actions/workflows/tests.yml/badge.svg)](https://github.com/sameelhaider32/event-analytics-api/actions/workflows/tests.yml)
+
 A robust, lightweight REST API for ingesting, querying, and analyzing operational events over disparate assets. It dynamically tracks metrics, evaluates real-time functional health, and surfaces rule-based alerts tailored to infrastructure monitoring.
-
----
-
-## Features
-
-- **Assets & Operators CRUD**: Native identifiers and metadata tracking.
-- **Event Ingestion**: Supports single-event and high-throughput bulk event streaming.
-- **Event Querying**: Deep filtering capabilities (by asset, severity thresholds, time-boundaries).
-- **Analytics Summary**: Real-time severity aggregations, metrics counts, and top entity tracking.
-- **Health Score**: A dynamically calculated `0–100` system evaluating penalty deductions based on recent anomalies.
-- **Alerts**: Rule-based evaluations triggering on critical failures, unauthorized access, and sustained anomaly bursts.
-
-## Tech Stack
-
-- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.11+)
-- **Database**: SQLite3 (native standard library)
-- **Testing**: `pytest` & `httpx` with `tmp_path` session isolation hooks
-- **Containerization**: Docker & Docker Compose
-- **CI/CD**: GitHub Actions workflows
 
 ---
 
@@ -39,7 +22,7 @@ uvicorn app.main:app --reload
 Interactive Swagger documentation will be immediately accessible locally at: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
 ### 3. Run Tests
-The test suite spans across multiple constraint boundaries evaluating 36 unique cases idempotently.
+The test suite utilizes functional execution environments resolving dynamically independent states across cases.
 ```powershell
 python -m pytest tests/ -v
 ```
@@ -48,8 +31,11 @@ python -m pytest tests/ -v
 
 ## Database Configuration
 
-The application natively uses a local SQLite database (`app.db`) situated at the root of the project. 
-To securely route persistent data locally or during isolated test evaluations, the system reads from the `REST_PROJECT_DB_PATH` environment variable. If omitted, it securely defaults to `./app.db`.
+The application natively uses a local SQLite database (`app.db`). To map persistent states cleanly locally or across production, bind the following environment variables:
+- `EVENT_ANALYTICS_DB_PATH` (Preferred) 
+- `REST_PROJECT_DB_PATH` (Legacy Backwards Compatibility)
+
+If neither are supplied, it securely generates and leverages `./app.db` natively.
 
 ---
 
@@ -67,7 +53,7 @@ curl -X POST http://127.0.0.1:8000/operators -H "Content-Type: application/json"
 
 **3. Bulk Post Events**
 ```powershell
-curl -X POST http://127.0.0.1:8000/events -H "Content-Type: application/json" -d '[{"timestamp":"2026-03-25T10:00:00Z", "asset_id":"ast_123", "type":"disk_full", "severity":4}, {"timestamp":"2026-03-25T10:05:00Z", "asset_id":"ast_123", "type":"login", "severity":1}]'
+curl -X POST http://127.0.0.1:8000/events -H "Content-Type: application/json" -d '[{"timestamp":"2026-03-25T10:00:00Z", "asset_id":"1", "event_type":"disk_full", "severity":4}, {"timestamp":"2026-03-25T10:05:00Z", "asset_id":"1", "event_type":"login", "severity":1}]'
 ```
 
 **4. Evaluate Analytics Summary**
@@ -75,14 +61,14 @@ curl -X POST http://127.0.0.1:8000/events -H "Content-Type: application/json" -d
 curl -X GET "http://127.0.0.1:8000/analytics/summary?min_severity=3"
 ```
 
-**5. Query Dynamic Health Score**
+**5. Query Active Alerts**
 ```powershell
-curl -X GET "http://127.0.0.1:8000/score/health?window_hours=24"
+curl -X GET "http://127.0.0.1:8000/alerts"
 ```
 
 ---
 
-## API Endpoints Overview
+## API Endpoints List
 
 | Method | Path                         | Usage                                 |
 |--------|------------------------------|---------------------------------------|
@@ -99,46 +85,10 @@ curl -X GET "http://127.0.0.1:8000/score/health?window_hours=24"
 
 ---
 
-## CI/CD and Containerization
+## Docker Execution
 
-### GitHub Actions
-A configured Push and Pull Request workflow securely triggers on `ubuntu-latest` nodes native to GitHub. This executes the entire suite (`pytest`) in containerized isolation on the active `main` branch.
-
-### Docker
-The application is pre-packaged alongside a portable `Dockerfile` bridging directly into `docker-compose.yml`.
+The application natively bundles containerized images via `Dockerfile` bridging directly over `docker-compose.yml`.
 ```powershell
 docker compose up --build -d
 ```
-State mappings natively isolate the local db into `./data/app.db` ensuring persistency across container builds.
-
----
-
-## Project Structure
-
-```text
-REST Project/
-├── app/
-│   ├── __init__.py
-│   ├── main.py       # FastAPI application, Core Endpoints
-│   ├── db.py         # SQLite connection mappings and aggregations
-│   └── schemas.py    # Pydantic models handling boundary validations
-├── tests/
-│   ├── conftest.py   # Global mock isolation fixtures
-│   ├── test_phase*.py  # Functional Phase boundaries
-├── .github/workflows/
-│   └── tests.yml     # Automated integrations CI pipeline
-├── Dockerfile        # Container builds
-├── docker-compose.yml# Volume management orchestrations
-├── requirements.txt
-├── .gitignore
-└── README.md
-```
-
----
-
-## Future Improvements
-
-- **Authentication / Authorization**: Implementing OAuth2/JWT bindings preventing unauthorized entity manipulations.
-- **Dynamic Rules System**: Upgrading the `/alerts` boundaries with customized rule configuration schemas directly persisting evaluating parameters dynamically.
-- **Relational ORM Overhaul**: Migrating from raw `sqlite3` driver queries to `SQLAlchemy` permitting expanded asynchronous query scalability mappings and dynamic indexing strategies.
-- **Time-Series Metric Archiving**: Offloading massive timestamp aggregation sets iteratively into partitioned cold-storage blocks for analytics bounding limits.
+State mappings natively decouple the local db into `./data/app.db` ensuring persistent bindings survive container teardowns.

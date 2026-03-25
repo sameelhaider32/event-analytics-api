@@ -1,0 +1,36 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.11.1, pytest-9.0.2, pluggy-1.6.0
+rootdir: C:\Users\samee\Downloads\REST Project
+configfile: pytest.ini
+plugins: anyio-4.12.1
+collected 11 items
+
+tests\test_phase2.py .F.FF...F..                                         [100%]
+
+================================== FAILURES ===================================
+_______________________ test_create_event_bulk_success ________________________
+tests\test_phase2.py:69: in test_create_event_bulk_success
+    assert response.status_code == 201
+E   assert 404 == 201
+E    +  where 404 = <Response [404 Not Found]>.status_code
+_______________ test_create_event_missing_operator_returns_404 ________________
+tests\test_phase2.py:99: in test_create_event_missing_operator_returns_404
+    assert "no-such-operator" in response.json()["detail"]
+E   assert 'no-such-operator' in "Asset 'test-asset-1' not found."
+______________________ test_list_events_returns_inserted ______________________
+tests\test_phase2.py:108: in test_list_events_returns_inserted
+    assert len(data) >= 3  # we created 3 events in earlier tests
+    ^^^^^^^^^^^^^^^^^^^^^
+E   assert 0 >= 3
+E    +  where 0 = len([])
+________________________ test_get_event_by_id_success _________________________
+tests\test_phase2.py:152: in test_get_event_by_id_success
+    assert len(events) > 0
+E   assert 0 > 0
+E    +  where 0 = len([])
+=========================== short test summary info ===========================
+FAILED tests/test_phase2.py::test_create_event_bulk_success - assert 404 == 201
+FAILED tests/test_phase2.py::test_create_event_missing_operator_returns_404
+FAILED tests/test_phase2.py::test_list_events_returns_inserted - assert 0 >= 3
+FAILED tests/test_phase2.py::test_get_event_by_id_success - assert 0 > 0
+========================= 4 failed, 7 passed in 0.63s =========================

@@ -12,17 +12,6 @@ from app.main import app
 
 
 
-def _reset_db():
-    from app.db import get_db_connection
-    conn = get_db_connection()
-    try:
-        conn.execute("DELETE FROM events")
-        conn.execute("DELETE FROM assets")
-        conn.execute("DELETE FROM operators")
-        conn.commit()
-    finally:
-        conn.close()
-
 def _create_asset(client, asset_id="ast_1"):
     r = client.post("/assets", json={"id": asset_id, "name": f"Asset {asset_id}", "type": "server"})
     assert r.status_code in (201, 409)
@@ -49,13 +38,11 @@ def _get_alerts(client, **params):
 
 # 1) empty DB -> /alerts returns []
 def test_empty_db_no_alerts(client):
-    _reset_db()
     alerts = _get_alerts(client)
     assert alerts == []
 
 # 2) burst rule triggers (>=5 events in 15 min window) for an asset
 def test_burst_rule_triggers(client):
-    _reset_db()
     _create_asset(client)
     _create_operator(client)
     # Burst requires >=5 in last 15 mins.
@@ -73,7 +60,6 @@ def test_burst_rule_triggers(client):
 
 # 3) critical rule triggers when severity==5 event exists
 def test_critical_rule_triggers(client):
-    _reset_db()
     _create_asset(client)
     _create_operator(client)
     
@@ -87,7 +73,6 @@ def test_critical_rule_triggers(client):
 
 # 4) unauthorized rule triggers when type=="unauthorized" event exists
 def test_unauthorized_rule_triggers(client):
-    _reset_db()
     _create_asset(client)
     _create_operator(client)
     
@@ -100,7 +85,6 @@ def test_unauthorized_rule_triggers(client):
 
 # 5) asset_id filter limits alerts to that asset
 def test_asset_id_filter(client):
-    _reset_db()
     _create_asset(client, "ast_1")
     _create_asset(client, "ast_2")
     _create_operator(client)
@@ -122,7 +106,6 @@ def test_asset_id_filter(client):
 
 # 6) operator_id filter limits alerts to that operator’s events only
 def test_operator_id_filter(client):
-    _reset_db()
     _create_asset(client)
     _create_operator(client, "op_1")
     _create_operator(client, "op_2")
@@ -141,7 +124,6 @@ def test_operator_id_filter(client):
 
 # 7) time window behavior: events outside range do not trigger alerts
 def test_time_window_behavior(client):
-    _reset_db()
     _create_asset(client)
     _create_operator(client)
     

@@ -10,18 +10,6 @@ from app.main import app
 
 
 
-@pytest.fixture(scope="module", autouse=True)
-def clean_db_for_phase1(client):
-    from app.db import get_db_connection
-    conn = get_db_connection()
-    try:
-        conn.execute("DELETE FROM assets")
-        conn.execute("DELETE FROM operators")
-        conn.commit()
-    finally:
-        conn.close()
-
-
 # ---------------------------------------------------------------------------
 # Asset tests
 # ---------------------------------------------------------------------------

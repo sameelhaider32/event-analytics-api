@@ -66,9 +66,9 @@ async def lifespan(app: FastAPI):
 # ---------------------------------------------------------------------------
 
 app = FastAPI(
-    title="REST Project",
-    description="A simple REST API — Phase 0 foundation + Phase 1 CRUD + Phase 2 Events + Phase 3 Analytics.",
-    version="0.4.0",
+    title="Event Analytics API",
+    description="A simple Event Analytics API — Phase 0 foundation + Phase 1 CRUD + Phase 2 Events + Phase 3 Analytics.",
+    version="1.0.0",
     lifespan=lifespan,
 )
 
@@ -88,7 +88,7 @@ def health_check():
     return {
         "ok": db_ok,
         "db_ok": db_ok,
-        "service": "rest-project",
+        "service": "event-analytics-api",
     }
 
 
@@ -221,6 +221,7 @@ def create_events(body: Union[EventCreate, List[EventCreate]]):
 def list_events(
     asset_id: Optional[str] = Query(None),
     operator_id: Optional[str] = Query(None),
+    event_type: Optional[str] = Query(None),
     type: Optional[str] = Query(None),
     min_severity: Optional[int] = Query(None, ge=1, le=5),
     from_ts: Optional[str] = Query(None),
@@ -229,10 +230,11 @@ def list_events(
     offset: int = Query(0, ge=0),
 ):
     """Return events matching optional filters, ordered newest-first."""
+    actual_type = event_type if event_type is not None else type
     events = get_events_filtered(
         asset_id=asset_id,
         operator_id=operator_id,
-        event_type=type,
+        event_type=actual_type,
         min_severity=min_severity,
         from_ts=from_ts,
         to_ts=to_ts,
@@ -259,16 +261,18 @@ def get_event(event_id: int):
 def get_summary(
     asset_id: Optional[str] = Query(None),
     operator_id: Optional[str] = Query(None),
+    event_type: Optional[str] = Query(None),
     type: Optional[str] = Query(None),
     min_severity: Optional[int] = Query(None, ge=1, le=5),
     from_ts: Optional[str] = Query(None),
     to_ts: Optional[str] = Query(None),
 ):
     """Return summary metrics for events matching optional filters."""
+    actual_type = event_type if event_type is not None else type
     summary = get_analytics_summary(
         asset_id=asset_id,
         operator_id=operator_id,
-        event_type=type,
+        event_type=actual_type,
         min_severity=min_severity,
         from_ts=from_ts,
         to_ts=to_ts,

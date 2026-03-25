@@ -22,7 +22,10 @@ from datetime import datetime, timezone
 DEFAULT_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "app.db")
 
 def get_db_path() -> str:
-    return os.getenv("REST_PROJECT_DB_PATH", DEFAULT_DB_PATH)
+    path = os.getenv("EVENT_ANALYTICS_DB_PATH")
+    if not path:
+        path = os.getenv("REST_PROJECT_DB_PATH", DEFAULT_DB_PATH)
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +63,7 @@ def init_db():
                 id             INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp      TEXT    NOT NULL,
                 type           TEXT    NOT NULL,
-                severity       INTEGER NOT NULL DEFAULT 0,
+                severity       INTEGER NOT NULL CHECK(severity BETWEEN 1 AND 5),
                 asset_id       TEXT    NOT NULL,
                 operator_id    TEXT,
                 metadata_json  TEXT

@@ -7,7 +7,8 @@ def setup_test_env(tmp_path_factory):
     # 1) Create a temporary database file in tmp_path
     db_path = tmp_path_factory.mktemp("data") / "test_app.db"
     
-    # 2) Set REST_PROJECT_DB_PATH using environ so app.db dynamically picks it up
+    # 2) Set DB path variables natively picking them up
+    os.environ["EVENT_ANALYTICS_DB_PATH"] = str(db_path)
     os.environ["REST_PROJECT_DB_PATH"] = str(db_path)
     
     yield
@@ -21,3 +22,18 @@ def client():
     from app.main import app
     with TestClient(app) as c:
         yield c
+
+@pytest.fixture(autouse=True)
+def reset_db_per_test():
+    """Ensure database is clean before EVERY test runs natively guaranteeing order-independence."""
+    from app.db import get_db_connection
+    conn = get_db_connection()
+    try:
+        conn.execute("DELETE FROM events")
+        conn.execute("DELETE FROM assets")
+        conn.execute("DELETE FROM operators")
+        conn.commit()
+    except Exception:
+        pass  # Just in case tables aren't perfectly compiled yet at earliest initialization boundaries
+    finally:
+        conn.close()

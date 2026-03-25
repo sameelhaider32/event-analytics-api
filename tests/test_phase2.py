@@ -10,24 +10,6 @@ from app.main import app
 
 
 # ---------------------------------------------------------------------------
-# Fixture — shared TestClient with clean DB state
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(scope="module", autouse=True)
-def clean_db_for_phase2(client):
-    from app.db import get_db_connection
-    conn = get_db_connection()
-    try:
-        conn.execute("DELETE FROM events")
-        conn.execute("DELETE FROM assets")
-        conn.execute("DELETE FROM operators")
-        conn.commit()
-    finally:
-        conn.close()
-
-
-# ---------------------------------------------------------------------------
 # Helper — create a test asset + operator via the API
 # ---------------------------------------------------------------------------
 
@@ -69,17 +51,18 @@ def test_create_event_single_success(client):
 
 def test_create_event_bulk_success(client):
     """POST /events with a list of 2 events returns 201 and a list."""
+    asset_id, op_id = _setup_asset_and_operator(client)
     response = client.post("/events", json=[
         {
             "timestamp": "2026-03-20T11:00:00Z",
-            "asset_id": "test-asset-1",
+            "asset_id": asset_id,
             "type": "disk_full",
             "severity": 4,
         },
         {
             "timestamp": "2026-03-20T12:00:00Z",
-            "asset_id": "test-asset-1",
-            "operator_id": "test-op-1",
+            "asset_id": asset_id,
+            "operator_id": op_id,
             "type": "login",
             "severity": 1,
         },
@@ -106,9 +89,10 @@ def test_create_event_missing_asset_returns_404(client):
 
 def test_create_event_missing_operator_returns_404(client):
     """POST /events with a non-existent operator_id returns 404."""
+    asset_id, op_id = _setup_asset_and_operator(client)
     response = client.post("/events", json={
         "timestamp": "2026-03-20T13:30:00Z",
-        "asset_id": "test-asset-1",
+        "asset_id": asset_id,
         "operator_id": "no-such-operator",
         "type": "error",
         "severity": 2,
@@ -119,6 +103,9 @@ def test_create_event_missing_operator_returns_404(client):
 
 def test_list_events_returns_inserted(client):
     """GET /events returns previously inserted events."""
+    asset_id, op_id = _setup_asset_and_operator(client)
+    for _ in range(3):
+        client.post("/events", json={"timestamp": "2026-03-20T10:00:00Z", "asset_id": asset_id, "type": "warning", "severity": 2})
     response = client.get("/events")
     assert response.status_code == 200
     data = response.json()
@@ -128,16 +115,20 @@ def test_list_events_returns_inserted(client):
 
 def test_filter_events_by_asset_id(client):
     """GET /events?asset_id=test-asset-1 returns only matching events."""
-    response = client.get("/events", params={"asset_id": "test-asset-1"})
+    asset_id, op_id = _setup_asset_and_operator(client)
+    client.post("/events", json={"timestamp": "2026-03-20T10:00:00Z", "asset_id": asset_id, "type": "warning", "severity": 2})
+    response = client.get("/events", params={"asset_id": asset_id})
     assert response.status_code == 200
     data = response.json()
     assert len(data) >= 1
     for event in data:
-        assert event["asset_id"] == "test-asset-1"
+        assert event["asset_id"] == asset_id
 
 
 def test_filter_events_by_min_severity(client):
     """GET /events?min_severity=3 returns only events with severity >= 3."""
+    asset_id, op_id = _setup_asset_and_operator(client)
+    client.post("/events", json={"timestamp": "2026-03-20T10:00:00Z", "asset_id": asset_id, "type": "warning", "severity": 4})
     response = client.get("/events", params={"min_severity": 3})
     assert response.status_code == 200
     data = response.json()
@@ -145,9 +136,24 @@ def test_filter_events_by_min_severity(client):
     for event in data:
         assert event["severity"] >= 3
 
+def test_filter_events_by_legacy_type(client):
+    """GET /events?type=warning gracefully evaluates natively identical to event_type=warning."""
+    asset_id, op_id = _setup_asset_and_operator(client)
+    client.post("/events", json={"timestamp": "2026-03-20T10:00:00Z", "asset_id": asset_id, "type": "legacy_query", "severity": 2})
+    
+    res1 = client.get("/events", params={"event_type": "legacy_query"})
+    res2 = client.get("/events", params={"type": "legacy_query"})
+    
+    assert res1.status_code == 200
+    assert res2.status_code == 200
+    assert len(res1.json()) >= 1
+    assert len(res2.json()) == len(res1.json())
+
 
 def test_get_event_by_id_success(client):
     """GET /events/{id} returns 200 for an existing event."""
+    asset_id, op_id = _setup_asset_and_operator(client)
+    client.post("/events", json={"timestamp": "2026-03-20T10:00:00Z", "asset_id": asset_id, "type": "warning", "severity": 2})
     # First, list events and pick the first one
     events = client.get("/events").json()
     assert len(events) > 0
@@ -166,9 +172,10 @@ def test_get_event_not_found(client):
 
 def test_create_event_severity_out_of_range(client):
     """POST /events with severity > 5 returns 422 (Pydantic validation)."""
+    asset_id, op_id = _setup_asset_and_operator(client)
     response = client.post("/events", json={
         "timestamp": "2026-03-20T14:00:00Z",
-        "asset_id": "test-asset-1",
+        "asset_id": asset_id,
         "type": "error",
         "severity": 10,
     })

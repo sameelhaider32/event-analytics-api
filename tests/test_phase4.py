@@ -17,18 +17,6 @@ from app.main import app
 
 
 
-def _reset_db():
-    from app.db import get_db_connection
-    conn = get_db_connection()
-    try:
-        conn.execute("DELETE FROM events")
-        conn.execute("DELETE FROM assets")
-        conn.execute("DELETE FROM operators")
-        conn.commit()
-    finally:
-        conn.close()
-
-
 def _create_asset(client, asset_id="ast_1"):
     r = client.post("/assets", json={"id": asset_id, "name": f"Asset {asset_id}", "type": "server"})
     assert r.status_code in (201, 409)
@@ -58,7 +46,6 @@ def _get_score(client, **params):
 # Test 1: Empty range returns score=100 and total_events=0 and deductions all 0.
 # ---------------------------------------------------------------------------
 def test_empty_range_perfect_score(client):
-    _reset_db()
     data = _get_score(client, from_ts="2026-03-25T00:00:00Z", to_ts="2026-03-25T01:00:00Z")
     assert data["total_events"] == 0
     assert data["score"] == 100
@@ -76,7 +63,6 @@ def test_empty_range_perfect_score(client):
 # Test 2: Inserting an event in-range reduces score correctly.
 # ---------------------------------------------------------------------------
 def test_event_in_range_reduces_score(client):
-    _reset_db()
     _create_asset(client)
     _create_operator(client)
     _post_event(client, "2026-03-25T10:00:00Z", severity=2, event_type="login")
@@ -95,7 +81,6 @@ def test_event_in_range_reduces_score(client):
 # Test 3: Events outside the time range are safely ignored.
 # ---------------------------------------------------------------------------
 def test_events_outside_range_ignored(client):
-    _reset_db()
     _create_asset(client)
     _create_operator(client)
     _post_event(client, "2026-03-25T08:00:00Z", severity=3) # before range
@@ -110,7 +95,6 @@ def test_events_outside_range_ignored(client):
 # Test 4: Severity >= 4 contributes to high_sev_count and deduction_high.
 # ---------------------------------------------------------------------------
 def test_high_severity_deduction(client):
-    _reset_db()
     _create_asset(client)
     _create_operator(client)
     _post_event(client, "2026-03-25T10:00:00Z", severity=4, event_type="login")
@@ -131,7 +115,6 @@ def test_high_severity_deduction(client):
 # Test 5: Type="error" contributes to error_count and deduction_error.
 # ---------------------------------------------------------------------------
 def test_error_type_deduction(client):
-    _reset_db()
     _create_asset(client)
     _create_operator(client)
     _post_event(client, "2026-03-25T10:00:00Z", severity=2, event_type="error") # notice event_type
@@ -152,7 +135,6 @@ def test_error_type_deduction(client):
 # Test 6: Asset ID filtering works (two assets, score differs).
 # ---------------------------------------------------------------------------
 def test_asset_id_filter(client):
-    _reset_db()
     _create_asset(client, "ast_1")
     _create_asset(client, "ast_2")
     _create_operator(client)
@@ -177,7 +159,6 @@ def test_asset_id_filter(client):
 # Test 7: Operator ID filtering works (two operators, score differs).
 # ---------------------------------------------------------------------------
 def test_operator_id_filter(client):
-    _reset_db()
     _create_asset(client)
     _create_operator(client, "op_1")
     _create_operator(client, "op_2")
